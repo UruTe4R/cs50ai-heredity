@@ -1,6 +1,7 @@
 import csv
 import itertools
 import sys
+import math
 
 PROBS = {
 
@@ -139,8 +140,162 @@ def joint_probability(people, one_gene, two_genes, have_trait):
         * everyone in set `have_trait` has the trait, and
         * everyone not in set` have_trait` does not have the trait.
     """
-    no_gene = people - one_gene - two_genes
-    not_have_trait = people - have_trait
+    names = set(people)
+    no_gene = names - one_gene - two_genes # set of names with no gene
+    not_have_trait = names - have_trait# set of names without trait
+    parents = {}
+    p = []
+    # Find parents
+    for name in names:
+        person = people[name]#set of person's bio
+        if person["mother"] is None and person["father"] is None:
+
+            if person["name"] in no_gene:
+                parents[name] = 0
+                if person["name"] in have_trait:
+                    p.append(PROBS["trait"][True] * PROBS["gene"][0])
+                elif person["name"] in not_have_trait:
+                    p.append(PROBS["trait"][False] * PROBS["gene"][0])
+
+            elif person["name"] in one_gene:
+                parents[name] = 1
+                if person["name"] in have_trait:
+                    p.append(PROBS["gene"][1] * PROBS["trait"][True])
+                elif person["name"] in not_have_trait:
+                    p.append(PROBS["gene"][1] * PROBS["trait"][False])
+
+            elif person["name"] in two_genes:
+                parents[name] = 2
+                if person["name"] in have_trait:
+                    p.append(PROBS["gene"][2] * PROBS["trait"][True])
+                elif person["name"] in not_have_trait:
+                    p.append(PROBS["gene"][2] * PROBS["trait"][False])
+
+    for name in names:
+        person = people[name]#set of person's bio
+        if person["mother"] is not None and person["father"] is not None:
+            # get mother and father's name
+            m_n = person["mother"]
+            f_n = person["father"]
+            genes_m = parents[m_n]
+            genes_f = parents[f_n]
+            mut = PROBS["mutation"]
+
+            if person["name"] in no_gene:# both parents passed no gene
+                if person["name"] in have_trait:
+                    p.append(PROBS["trait"][0][True])
+                else:
+                    p.append(PROBS["trait"][0][False])
+                if genes_m == 0:
+
+                    # p_m & p_f = probability of mother/father passing genes or no gene
+                    p_m = 1 - mut
+                    p_f = 0
+                    if genes_f == 0:
+                        p_f = 1 - mut
+                    elif genes_f == 1:
+                        p_f = 0.5
+                    elif genes_f == 2:
+                        p_f = mut
+                    p.append(p_m * p_f)
+
+                elif genes_m == 1:
+                    p_m = 0.5
+                    p_f = 0
+                    if genes_f == 0:
+                        p_f = 1 - mut
+                    elif genes_f == 1:
+                        p_f = 0.5
+                    elif genes_f == 2: 
+                        p_f = mut
+                    p.append(p_m * p_f)
+
+                elif genes_m == 2:
+                    p_m = mut
+                    p_f = 0
+                    if genes_f == 0:
+                        p_f = 1 - mut
+                    elif genes_f == 1:
+                        p_f = 0.5
+                    elif genes_f == 2:
+                        p_f = mut
+                    p.append(p_m * p_f)
+
+            elif person["name"] in one_gene:# inherited one gene
+                if person["name"] in have_trait:
+                    p.append(PROBS["trait"][0][True])
+                else:
+                    p.append(PROBS["trait"][0][False])
+                if genes_m == 0:
+
+                    if genes_f == 0:
+                        # mutation happens to mother or father and the other parant passes no gene
+                        p.append(2 * (mut * (1 - mut)))
+                    elif genes_f == 1:    
+                        # mother mutated and father didn't pass or mother didnot pass and father passed                      
+                        p.append((0.5 * mut + 0.5 * (1 - mut)))
+                    elif genes_f == 2:
+                        # mutation happens to both or 0 gene from mother and 1 gene from father
+                        p.append((mut * mut) + (1 - mut) * (1 - mut))
+                
+                elif genes_m == 1:
+
+                    if genes_f == 0:
+                        p.append((0.5 * mut + 0.5 * (1 - mut)))
+                    elif genes_f == 1:
+                        p.append(2 * (0.5 * 0.5))
+                    elif genes_f == 2:
+                        p.append(0.5 * mut + 0.5 * (1 - mut)) 
+                
+                elif genes_m == 2:
+
+                    if genes_f == 0:
+                        p.append((1 - mut)**2 + mut**2)
+                    elif genes_f == 1:
+                        p.append((1 - mut) * 0.5 + mut * 0.5)
+                    elif genes_f == 2:
+                        p.append(2 * (1 - mut) * mut)
+
+            elif person["name"] in two_genes:#inherited 2 genes
+                if person["name"] in have_trait:
+                    p.append(PROBS["trait"][0][True])
+                else:
+                    p.append(PROBS["trait"][0][False])
+                if genes_m == 0:
+                    p_m = mut
+                    p_f = 0
+                    if genes_f == 0:
+                        p_f = mut
+                    elif genes_f == 1:
+                        p_f = 0.5
+                    elif genes_f == 2:
+                        p_f = 1 - mut
+                    p.append(p_m * p_f)
+                elif genes_m == 1:
+                    p_m = 0.5
+                    p_f = 0
+                    if genes_f == 0:
+                        p_f = mut
+                    elif genes_f == 1:
+                        p_f = 0.5
+                    elif genes_f == 2:
+                        p_f = 1 - mut
+                    p.append(p_m * p_f)
+                elif genes_m == 2:
+                    p_m = 1 - mut
+                    p_f = 0
+                    if genes_f == 0:
+                        p_f = mut
+                    elif genes_f == 1:
+                        p_f = 0.5
+                    elif genes_f == 2:
+                        p_f = 1 - mut
+                    p.append(p_m * p_f)
+    
+    return math.prod(p)
+
+            
+
 
 
 def update(probabilities, one_gene, two_genes, have_trait, p):
