@@ -143,42 +143,43 @@ def joint_probability(people, one_gene, two_genes, have_trait):
     names = set(people)
     no_gene = names - one_gene - two_genes # set of names with no gene
     not_have_trait = names - have_trait# set of names without trait
-    parents = {}
+    
+    bios = {person: {"gene": 0} for person in no_gene}
+    bios.update({person: {"gene": 1} for person in one_gene})
+    bios.update({person: {"gene": 2} for person in two_genes})
     p = []
-    # Find parents
+    
+    # Find origin parents
     for name in names:
         person = people[name]#set of person's bio
         if person["mother"] is None and person["father"] is None:
 
-            if person["name"] in no_gene:
-                parents[name] = 0
+            if person["name"] in no_gene: 
                 if person["name"] in have_trait:
-                    p.append(PROBS["trait"][True] * PROBS["gene"][0])
+                    p.append(PROBS["trait"][0][True] * PROBS["gene"][0])
                 elif person["name"] in not_have_trait:
-                    p.append(PROBS["trait"][False] * PROBS["gene"][0])
+                    p.append(PROBS["trait"][0][False] * PROBS["gene"][0])
 
-            elif person["name"] in one_gene:
-                parents[name] = 1
+            elif person["name"] in one_gene: 
                 if person["name"] in have_trait:
-                    p.append(PROBS["gene"][1] * PROBS["trait"][True])
+                    p.append(PROBS["gene"][1] * PROBS["trait"][1][True])
                 elif person["name"] in not_have_trait:
-                    p.append(PROBS["gene"][1] * PROBS["trait"][False])
+                    p.append(PROBS["gene"][1] * PROBS["trait"][1][False])
 
             elif person["name"] in two_genes:
-                parents[name] = 2
                 if person["name"] in have_trait:
-                    p.append(PROBS["gene"][2] * PROBS["trait"][True])
+                    p.append(PROBS["gene"][2] * PROBS["trait"][2][True])
                 elif person["name"] in not_have_trait:
-                    p.append(PROBS["gene"][2] * PROBS["trait"][False])
+                    p.append(PROBS["gene"][2] * PROBS["trait"][2][False])
 
-    for name in names:
-        person = people[name]#set of person's bio
-        if person["mother"] is not None and person["father"] is not None:
+            
+        elif person["mother"] is not None and person["father"] is not None:
+
             # get mother and father's name
             m_n = person["mother"]
             f_n = person["father"]
-            genes_m = parents[m_n]
-            genes_f = parents[f_n]
+            genes_m = bios[m_n]["gene"]
+            genes_f = bios[f_n]["gene"]
             mut = PROBS["mutation"]
 
             if person["name"] in no_gene:# both parents passed no gene
@@ -186,6 +187,7 @@ def joint_probability(people, one_gene, two_genes, have_trait):
                     p.append(PROBS["trait"][0][True])
                 else:
                     p.append(PROBS["trait"][0][False])
+
                 if genes_m == 0:
 
                     # p_m & p_f = probability of mother/father passing genes or no gene
@@ -223,9 +225,9 @@ def joint_probability(people, one_gene, two_genes, have_trait):
 
             elif person["name"] in one_gene:# inherited one gene
                 if person["name"] in have_trait:
-                    p.append(PROBS["trait"][0][True])
+                    p.append(PROBS["trait"][1][True])
                 else:
-                    p.append(PROBS["trait"][0][False])
+                    p.append(PROBS["trait"][1][False])
                 if genes_m == 0:
 
                     if genes_f == 0:
@@ -258,9 +260,9 @@ def joint_probability(people, one_gene, two_genes, have_trait):
 
             elif person["name"] in two_genes:#inherited 2 genes
                 if person["name"] in have_trait:
-                    p.append(PROBS["trait"][0][True])
+                    p.append(PROBS["trait"][2][True])
                 else:
-                    p.append(PROBS["trait"][0][False])
+                    p.append(PROBS["trait"][2][False])
                 if genes_m == 0:
                     p_m = mut
                     p_f = 0
@@ -291,7 +293,8 @@ def joint_probability(people, one_gene, two_genes, have_trait):
                     elif genes_f == 2:
                         p_f = 1 - mut
                     p.append(p_m * p_f)
-    
+        
+    p = [round(prob, 5) for prob in p]
     return math.prod(p)
 
             
@@ -305,7 +308,21 @@ def update(probabilities, one_gene, two_genes, have_trait, p):
     Which value for each distribution is updated depends on whether
     the person is in `have_gene` and `have_trait`, respectively.
     """
-    raise NotImplementedError
+    names = set(probabilities)
+    no_gene = names - one_gene - two_genes
+    not_have_trait = names - have_trait
+    for name in names:
+        if name in have_trait:
+            probabilities[name]["trait"][True] = 1
+        elif name in not_have_trait:
+            probabilities[name]["trait"][False] = 1
+
+        if name in no_gene:
+            probabilities[name]["gene"][0] = 1 
+        elif name in one_gene:
+            probabilities[name]["gene"][1] = 1
+        elif name in two_genes:
+            probabilities[name]["gene"][2] = 1
 
 
 def normalize(probabilities):
