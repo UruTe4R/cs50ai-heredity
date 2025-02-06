@@ -308,21 +308,29 @@ def update(probabilities, one_gene, two_genes, have_trait, p):
     Which value for each distribution is updated depends on whether
     the person is in `have_gene` and `have_trait`, respectively.
     """
+    
     names = set(probabilities)
     no_gene = names - one_gene - two_genes
     not_have_trait = names - have_trait
+    bios = {name: {"gene": 0} for name in no_gene}
+    bios.update({name: {"gene": 1} for name in one_gene})
+    bios.update({name: {"gene": 2} for name in two_genes})
+
+
+
     for name in names:
         if name in have_trait:
-            probabilities[name]["trait"][True] = 1
+            probabilities[name]["trait"][True] += p
         elif name in not_have_trait:
-            probabilities[name]["trait"][False] = 1
+            probabilities[name]["trait"][False] += p
 
         if name in no_gene:
-            probabilities[name]["gene"][0] = 1 
+            probabilities[name]["gene"][0] += p 
         elif name in one_gene:
-            probabilities[name]["gene"][1] = 1
+            probabilities[name]["gene"][1] += p
         elif name in two_genes:
-            probabilities[name]["gene"][2] = 1
+            probabilities[name]["gene"][2] += p
+    
 
 
 def normalize(probabilities):
@@ -330,7 +338,15 @@ def normalize(probabilities):
     Update `probabilities` such that each probability distribution
     is normalized (i.e., sums to 1, with relative proportions the same).
     """
-    raise NotImplementedError
+    names = probabilities.keys()
+    for name in names:
+        total_gene = sum(probabilities[name]["gene"].values())
+        probabilities[name]["gene"][0] = probabilities[name]["gene"][0] / total_gene
+        probabilities[name]["gene"][1] = probabilities[name]["gene"][1] / total_gene
+        probabilities[name]["gene"][2] = probabilities[name]["gene"][2] / total_gene
+        total_trait = sum(probabilities[name]["trait"].values())
+        probabilities[name]["trait"][True] = probabilities[name]["trait"][True] / total_trait
+        probabilities[name]["trait"][False] = probabilities[name]["trait"][False] / total_trait
 
 
 if __name__ == "__main__":
