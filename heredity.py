@@ -345,8 +345,8 @@ def normalize(probabilities):
         probabilities[name]["gene"][1] = probabilities[name]["gene"][1] / total_gene
         probabilities[name]["gene"][2] = probabilities[name]["gene"][2] / total_gene
         total_trait = sum(probabilities[name]["trait"].values())
-        probabilities[name]["trait"][True] = probabilities[name]["trait"][True] / total_trait
-        probabilities[name]["trait"][False] = probabilities[name]["trait"][False] / total_trait
+        probabilities[name]["trait"][True] /= total_trait
+        probabilities[name]["trait"][False] /= total_trait
 
 
 if __name__ == "__main__":
